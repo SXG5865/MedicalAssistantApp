@@ -78,82 +78,10 @@ class ConditionGraph:
 condition_graph = ConditionGraph()
 condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
 
-#Navigation functions
-def save_profile():
-    profile_info["gender"] = gender_var.get()
-    profile_info["age"] = age_combobox.get()
-    profile_info["medical_history"] = medical_history_text.get("1.0", tk.END).strip()
-    messagebox.showinfo("Profile Saved", "Your profile information has been saved.")
-
-def show_profile_page():
-    hide_all_frames()
-    profile_frame.pack(fill="both", expand=True)
-
-def show_homepage():
-    hide_all_frames()
-    homepage_frame.pack(fill="both", expand=True)
-
-def show_symptom_page():
-    hide_all_frames()
-    symptom_frame.pack(fill="both", expand=True)
-
-def show_conditionSearch_page():
-    hide_all_frames()
-    condition_search_frame.pack(fill="both", expand=True)
-
-def hide_all_frames():
-    for frame in [homepage_frame, profile_frame, symptom_frame, condition_search_frame]:
-        frame.pack_forget()
-
-#GUI setup
-root = tk.Tk()
-root.title("Medical Assistant App")
-root.geometry("500x400")
-
-#Homepage
-homepage_frame = tk.Frame(root)
-tk.Label(homepage_frame, text="Welcome to the Medical Assistant App", font=("Arial", 16)).pack(pady=20)
-tk.Button(homepage_frame, text="Visit Profile", command=show_profile_page, width=30).pack(pady=10)
-tk.Button(homepage_frame, text="Enter My Symptoms", command=show_symptom_page, width=30).pack(pady=10)
-tk.Button(homepage_frame, text="Search for Information on a Condition", command=show_conditionSearch_page, width=30).pack(pady=10)
-tk.Button(homepage_frame, text="Exit", command=root.quit, width=30).pack(pady=10)
-tk.Label(homepage_frame, text="Disclaimer: This is not a verified medical professional.\nIf this is a medical emergency, call 911.", fg="red", wraplength=400, justify="center").pack(pady=20)
-
-#Profile Page
-profile_frame = tk.Frame(root)
-tk.Label(profile_frame, text="Profile Information", font=("Arial", 16)).pack(pady=20)
-gender_var = tk.StringVar()
-tk.Label(profile_frame, text="Gender:").pack(anchor="w", padx=20)
-tk.Radiobutton(profile_frame, text="Male", variable=gender_var, value="Male").pack(anchor="w", padx=20)
-tk.Radiobutton(profile_frame, text="Female", variable=gender_var, value="Female").pack(anchor="w", padx=20)
-tk.Radiobutton(profile_frame, text="Other", variable=gender_var, value="Other").pack(anchor="w", padx=20)
-tk.Label(profile_frame, text="Age:").pack(anchor="w", padx=20, pady=10)
-age_combobox = ttk.Combobox(profile_frame, values=[str(i) for i in range(1, 101)])
-age_combobox.pack(anchor="w", padx=40)
-tk.Label(profile_frame, text="Medical History:").pack(anchor="w", padx=20, pady=10)
-medical_history_text = tk.Text(profile_frame, height=5, width=40)
-medical_history_text.pack(padx=40)
-tk.Button(profile_frame, text="Save Profile", command=save_profile).pack(pady=10)
-tk.Button(profile_frame, text="Back to Homepage", command=show_homepage).pack(pady=10)
-
-# Symptom Page
-symptom_frame = tk.Frame(root)
-tk.Label(symptom_frame, text="Enter Your Symptoms", font=("Arial", 16)).pack(pady=20)
-
-# Create a frame for symptom input
-symptom_input_frame = tk.Frame(symptom_frame)
-symptom_input_frame.pack(pady=10)
-
-# Symptom Entry with Scrollbar
-symptom_text = tk.Text(symptom_input_frame, height=5, width=40, wrap=tk.WORD)
-symptom_text.pack(side=tk.LEFT, padx=5)
-
-# Scrollbar for symptom text
-symptom_scrollbar = tk.Scrollbar(symptom_input_frame, command=symptom_text.yview)
-symptom_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-symptom_text.config(yscrollcommand=symptom_scrollbar.set)
 
 
+
+###################################--SYMPTOM MATCHER--#######################################################
 def submit_symptoms():
     # Clear any previous result labels
     for widget in symptom_frame.winfo_children():
@@ -225,6 +153,147 @@ def submit_symptoms():
                                   justify=tk.LEFT)
         no_match_label.pack(pady=10)
 
+def search_condition():
+    search_term = condition_entry.get().strip().lower()
+    suggested_condition = condition_graph.suggest_correction(search_term, list(condition_graph.graph['conditions'].keys()))
+    if suggested_condition:
+        messagebox.showinfo("Condition Found", f"Found: {suggested_condition}")
+        symptoms = condition_graph.graph['conditions'][suggested_condition]
+        messagebox.showinfo("Symptoms", f"Symptoms: {', '.join(symptoms)}")
+    else:
+        messagebox.showinfo("Condition Not Found", f"No condition found for '{search_term}'.")
+
+tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
+tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
+
+
+#-------------------------------------------------GUI-----------------------------------------------------$
+
+#Navigation functions
+def save_profile():
+    #save selected gender to profile_info dict. using the val of gender_var
+    profile_info["gender"] = gender_var.get()
+    #save selected age to profile_info dict. using the val of the age_combobox
+    profile_info["age"] = age_combobox.get()
+    #save entered medical history to profile_info dict.
+    #"1.0" is the starting index (row 1, column 0) of the text box
+    #"tk.END" refers to the end of the text box content, allowing the function to capture everything in it
+    profile_info["medical_history"] = medical_history_text.get("1.0", tk.END).strip()
+    #show a message box w/ a confirmation message
+    messagebox.showinfo("Profile Saved", "Your profile information has been saved.")
+
+#displays the homepage by hiding other frames and showing the homepage_frame
+def show_profile_page():
+    hide_all_frames()
+    #fill = "both" means that the widget will stretch both horizontally and vertically to fill the avaliable space
+    profile_frame.pack(fill="both", expand=True)
+    #expand = True means that the widget will expand to fill any additional space, sharing it with other widgets that also have expand=True
+
+#displays the profile page by hiding other frames and showing the profile_frame
+def show_homepage():
+    hide_all_frames()
+    homepage_frame.pack(fill="both", expand=True)
+
+#displays the profile page by hiding other frames and showing the profile_frame
+def show_symptom_page():
+    hide_all_frames()
+    symptom_frame.pack(fill="both", expand=True)
+
+#displays the condition search page by hiding other frames and showing the condition
+def show_conditionSearch_page():
+    hide_all_frames()
+    condition_search_frame.pack(fill="both", expand=True)
+
+#hides all frames to prepare for showing a specific frame
+#used for apps that use multiple frames but only shows one at a time
+def hide_all_frames():
+    #iterate over the list of frames
+    for frame in [homepage_frame, profile_frame, symptom_frame, condition_search_frame]:
+        #method that removes the widget (a frame) from the visible layout
+        frame.pack_forget() #removes it from the layout, hiding it from view without destroying it
+
+#GUI setup
+root = tk.Tk() #creates main app window; starting point for any Tkinter app
+root.title("Medical Assistant App") #sets title of app window
+root.geometry("500x400") #sets the size of the window
+
+#Homepage
+#creates a frame to hold all the widgets for the homepage
+homepage_frame = tk.Frame(root)
+#root is parent widget (displayed in main app window)
+#adds a label to the homepage, displays the welcome message
+tk.Label(homepage_frame, text="Welcome to the Medical Assistant App", font=("Arial", 16)).pack(pady=20)
+# ".pack(pady=20)" places the label in the frame with pack() and adds a vertical padding of 20 pixels above and below (for space)
+#adds a button to navigate to the profile page
+#width is 30; pack(pady=10) means vertical padding of 10 above and below button
+tk.Button(homepage_frame, text="Visit Profile", command=show_profile_page, width=30).pack(pady=10)
+#adds a button to navigate to the symptom page
+#width is 30; pack(pady=10) means vertical padding of 10 above and below button
+tk.Button(homepage_frame, text="Enter My Symptoms", command=show_symptom_page, width=30).pack(pady=10)
+#adds a button to navigate to the condition page
+#width is 30; pack(pady=10) means vertical padding of 10 above and below button
+tk.Button(homepage_frame, text="Search for Information on a Condition", command=show_conditionSearch_page, width=30).pack(pady=10)
+#adds a button to end the program
+#width is 30; pack(pady=10) means vertical padding of 10 above and below button
+tk.Button(homepage_frame, text="Exit", command=root.quit, width=30).pack(pady=10)
+# a label for a disclaimer that we are not real medical care professionals! Can change to color red.
+#wraplength limits the label's text to 400 pixels. it will wrap to next line if it exceeds
+#justify:aligns the text to the center ("center" alignment).
+tk.Label(homepage_frame, text="Disclaimer: This is not a verified medical professional.\nIf this is a medical emergency, call 911.", fg="red", wraplength=400, justify="center").pack(pady=20)
+
+#Profile Page
+profile_frame = tk.Frame(root)
+#label for profile information
+tk.Label(profile_frame, text="Profile Information", font=("Arial", 16)).pack(pady=20)
+#creates a variable to store the user gender selection
+gender_var = tk.StringVar() #Tkiner class used to manage string variables
+tk.Label(profile_frame, text="Gender:").pack(anchor="w", padx=20) #variable is linked to gender radio buttons so will auto update
+#label texts will display "Gender:" as the label's text
+#anchor = "w" aligns the label to the left (west) of the frame
+#variable "gender_var" links the button to the variable.
+tk.Radiobutton(profile_frame, text="Male", variable=gender_var, value="Male").pack(anchor="w", padx=20)
+tk.Radiobutton(profile_frame, text="Female", variable=gender_var, value="Female").pack(anchor="w", padx=20)
+tk.Radiobutton(profile_frame, text="Other", variable=gender_var, value="Other").pack(anchor="w", padx=20)
+
+#label for age
+tk.Label(profile_frame, text="Age:").pack(anchor="w", padx=20, pady=10)
+#adds a combobox for selecting age. values specifies the list of options (ages 1 to 100)
+age_combobox = ttk.Combobox(profile_frame, values=[str(i) for i in range(1, 101)]) # generates a list of strings represents numbers 1 thru 100
+#places the age combobox in the frame; 40 pixels of horizontal padding
+age_combobox.pack(anchor="w", padx=40)
+#adds a label to prompt the user to enter their medical history
+#padx = 20; 20 pixels of horizontal padding
+#pady = 10; 10 pixels of vertical padding above and yellow
+tk.Label(profile_frame, text="Medical History:").pack(anchor="w", padx=20, pady=10)
+#adds a multi-line text box for entering medical history
+#height = sets text box height to 5 lines
+#width = sets text box width to 40 chars.
+medical_history_text = tk.Text(profile_frame, height=5, width=40)
+#places the medical history text box in the frame; 40 horizontal padding left and right
+medical_history_text.pack(padx=40)
+#adds a button to save the user's profile information
+#command = links button to save_profile func
+tk.Button(profile_frame, text="Save Profile", command=save_profile).pack(pady=10)
+#command = show_homepage; goes back to homepage
+tk.Button(profile_frame, text="Back to Homepage", command=show_homepage).pack(pady=10)
+
+# Symptom Page
+symptom_frame = tk.Frame(root)
+tk.Label(symptom_frame, text="Enter Your Symptoms", font=("Arial", 16)).pack(pady=20)
+
+# Create a frame for symptom input
+symptom_input_frame = tk.Frame(symptom_frame) #subframe to organize symptom entry and its scrollbar
+symptom_input_frame.pack(pady=10)
+
+# Symptom Entry with Scrollbar
+#adds multi-line textbox
+symptom_text = tk.Text(symptom_input_frame, height=5, width=40, wrap=tk.WORD)
+symptom_text.pack(side=tk.LEFT, padx=5)
+
+# Scrollbar for symptom text
+symptom_scrollbar = tk.Scrollbar(symptom_input_frame, command=symptom_text.yview)
+symptom_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+symptom_text.config(yscrollcommand=symptom_scrollbar.set)
 
 # Submit Symptoms Button
 submit_button = tk.Button(symptom_frame, text="Submit Symptoms", command=submit_symptoms)
@@ -240,18 +309,6 @@ tk.Label(condition_search_frame, text="Search for a Medical Condition", font=("A
 condition_entry = tk.Entry(condition_search_frame, width=40)
 condition_entry.pack(pady=10)
 
-def search_condition():
-    search_term = condition_entry.get().strip().lower()
-    suggested_condition = condition_graph.suggest_correction(search_term, list(condition_graph.graph['conditions'].keys()))
-    if suggested_condition:
-        messagebox.showinfo("Condition Found", f"Found: {suggested_condition}")
-        symptoms = condition_graph.graph['conditions'][suggested_condition]
-        messagebox.showinfo("Symptoms", f"Symptoms: {', '.join(symptoms)}")
-    else:
-        messagebox.showinfo("Condition Not Found", f"No condition found for '{search_term}'.")
-
-tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
-tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
 
 #Show Homepage by default
 show_homepage()
