@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk, messagebox
 from tkinter import *
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -95,8 +96,8 @@ tk.Label(profile_frame, text="Profile Information", font=("Arial", 16)).pack(pad
 #creating a label for dark and light mode
 tk.Label(profile_frame, text="Choose Light Mode or Dark Mode:").pack(anchor="w",padx=20)
 #adding light and dark mode images
-lightImage = Image.open('images\light mode.png')
-darkImage = Image.open('images\dark mode.png')
+lightImage = Image.open('images/light mode.png')
+darkImage = Image.open('images/dark mode.png')
 #RESIZING EACH IMAGE USING PILLOW LIBRARY
 #SOURCE: https://www.geeksforgeeks.org/how-to-resize-image-in-python-tkinter/
 resize_imageL = lightImage.resize((180,80))
