@@ -1,9 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import *
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 import difflib
 import sys
-from tkinter import *
 from PIL import Image, ImageTk
 
 #global variables for profile info
@@ -13,10 +15,7 @@ profile_info = {
     "medical_history": None
 }
 
-
-
 #-------------------------------------------------GUI-----------------------------------------------------$
-
 #Navigation functions
 def save_profile():
     #save selected gender to profile_info dict. using the val of gender_var
@@ -29,29 +28,24 @@ def save_profile():
     profile_info["medical_history"] = medical_history_text.get("1.0", tk.END).strip()
     #show a message box w/ a confirmation message
     messagebox.showinfo("Profile Saved", "Your profile information has been saved.")
-
 #displays the homepage by hiding other frames and showing the homepage_frame
 def show_profile_page():
     hide_all_frames()
     #fill = "both" means that the widget will stretch both horizontally and vertically to fill the avaliable space
     profile_frame.pack(fill="both", expand=True)
     #expand = True means that the widget will expand to fill any additional space, sharing it with other widgets that also have expand=True
-
 #displays the profile page by hiding other frames and showing the profile_frame
 def show_homepage():
     hide_all_frames()
     homepage_frame.pack(fill="both", expand=True)
-
 #displays the profile page by hiding other frames and showing the profile_frame
 def show_symptom_page():
     hide_all_frames()
     symptom_frame.pack(fill="both", expand=True)
-
 #displays the condition search page by hiding other frames and showing the condition
 def show_conditionSearch_page():
     hide_all_frames()
     condition_search_frame.pack(fill="both", expand=True)
-
 #hides all frames to prepare for showing a specific frame
 #used for apps that use multiple frames but only shows one at a time
 def hide_all_frames():
@@ -59,16 +53,13 @@ def hide_all_frames():
     for frame in [homepage_frame, profile_frame, symptom_frame, condition_search_frame]:
         #method that removes the widget (a frame) from the visible layout
         frame.pack_forget() #removes it from the layout, hiding it from view without destroying it
-
 ###########################################################################################################
 #GUI setup
 root = tk.Tk() #creates main app window; starting point for any Tkinter app
 root.title("Medical Assistant App") #sets title of app window
 root.geometry("500x600") #sets the size of the window
-
 #dict to trafck all frames
 windows = {}
-
 ##############################################################################################################
 #Homepage
 #creates a frame to hold all the widgets for the homepage
@@ -93,16 +84,13 @@ tk.Button(homepage_frame, text="Exit", command=root.quit, width=30).pack(pady=10
 #wraplength limits the label's text to 400 pixels. it will wrap to next line if it exceeds
 #justify:aligns the text to the center ("center" alignment).
 tk.Label(homepage_frame, text="Disclaimer: This is not a verified medical professional.\nIf this is a medical emergency, call 911.", fg="red", wraplength=400, justify="center").pack(pady=20)
-
 ############################################################################################################################################################
 #Profile Page
 profile_frame = tk.Frame(root)
 #label for profile information
 tk.Label(profile_frame, text="Profile Information", font=("Arial", 16)).pack(pady=20)
-
 ######
 #SOURCE:https://www.geeksforgeeks.org/light-or-dark-theme-changer-using-tkinter/
-
 #creating a dark and light mode for the app; for light sensitivity
 #creating a label for dark and light mode
 tk.Label(profile_frame, text="Choose Light Mode or Dark Mode:").pack(anchor="w",padx=20)
@@ -116,7 +104,6 @@ resize_imageD = darkImage.resize((180,80))
 light = ImageTk.PhotoImage(resize_imageL)
 dark = ImageTk.PhotoImage(resize_imageD)
 switch_value = True
-
 # recursive func to apply theme to all widgets
 def apply_theme(widget, bg, fg):
     #applies background (bg) and foreground (fg) theme to all children widgets within parent widget
@@ -134,52 +121,39 @@ def apply_theme(widget, bg, fg):
         #if true, update only its BG color
         elif isinstance(widget, tk.Frame):
             widget.config(bg=bg)
-
     #print an error message if the widget cannot be added
     except Exception as e:
         print(f"Error applying theme to {widget}: {e}")
-
     # recursive apply theme to child widgets of current widget
     for child in widget.winfo_children():
         apply_theme(child, bg, fg)
-
-
-
-
 #defining a function to toggle between both themes
 def toggle():
     #updates for all windows and frames
     global switch_value #uses the global var to track the current theme state
-
     if switch_value:
         #set the toggle button to dark mode appearance
         switch.config(image=dark, bg="#26242f",
                       activebackground="#26242f")
-
         #apply dark mode theme to all frames in all registered windows
         for win, frames in windows.items():
             for frame in frames:
                 apply_theme(frame, bg = "#26242f", fg = "white")
         #update the theme state to dark mode
         switch_value = False
-
     else:
         #set the toggle button to light mode appearance
         switch.config(image=light, bg="white", activebackground="white")
-
         #apply light mode theme to all frames
         for win, frames in windows.items():
             for frame in frames:
                 apply_theme(frame, bg="white", fg = "black")
         #update theme state to light mode
         switch_value = True
-
-
 #creating a button to toggle between light and dark themes
 switch = Button(profile_frame, image=light, bd=0, bg = "white", activebackground = "white", command=toggle)
 switch.pack(anchor="w",padx=20)
 ######END OF LIGHT MODE AND DARK MODE FEATURE
-
 #creates a variable to store the user gender selection
 gender_var = tk.StringVar() #Tkiner class used to manage string variables
 tk.Label(profile_frame, text="Gender:").pack(anchor="w", padx=20) #variable is linked to gender radio buttons so will auto update
@@ -192,7 +166,6 @@ tk.Label(profile_frame, text="Gender:").pack(anchor="w", padx=20) #variable is l
 tk.Radiobutton(profile_frame, text="Male", variable=gender_var, value="Male", tristatevalue="x").pack(anchor="w", padx=20)
 tk.Radiobutton(profile_frame, text="Female", variable=gender_var, value="Female", tristatevalue="x").pack(anchor="w", padx=20)
 tk.Radiobutton(profile_frame, text="Other", variable=gender_var, value="Other", tristatevalue="x").pack(anchor="w", padx=20)
-
 #label for age
 tk.Label(profile_frame, text="Age:").pack(anchor="w", padx=20, pady=10)
 #adds a combobox for selecting age. values specifies the list of options (ages 1 to 100)
@@ -214,41 +187,32 @@ medical_history_text.pack(padx=40)
 tk.Button(profile_frame, text="Save Profile", command=save_profile).pack(pady=10)
 #command = show_homepage; goes back to homepage
 tk.Button(profile_frame, text="Back to Homepage", command=show_homepage).pack(pady=10)
-
 # Symptom Page
 symptom_frame = tk.Frame(root)
 tk.Label(symptom_frame, text="Enter Your Symptoms", font=("Arial", 16)).pack(pady=20)
-
 # Create a frame for symptom input
 symptom_input_frame = tk.Frame(symptom_frame) #subframe to organize symptom entry and its scrollbar
 symptom_input_frame.pack(pady=10)
-
 # Symptom Entry with Scrollbar
 #adds multi-line textbox
 symptom_text = tk.Text(symptom_input_frame, height=5, width=40, wrap=tk.WORD)
 symptom_text.pack(side=tk.LEFT, padx=5)
-
 # Scrollbar for symptom text
 symptom_scrollbar = tk.Scrollbar(symptom_input_frame, command=symptom_text.yview)
 symptom_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 symptom_text.config(yscrollcommand=symptom_scrollbar.set)
-
-
 # Back to Homepage Button
 back_button = tk.Button(symptom_frame, text="Back to Homepage", command=show_homepage)
 back_button.pack()
-
 #Condition Search Page
 condition_search_frame = tk.Frame(root)
 tk.Label(condition_search_frame, text="Search for a Medical Condition", font=("Arial", 16)).pack(pady=20)
 condition_entry = tk.Entry(condition_search_frame, width=40)
 condition_entry.pack(pady=10)
-
 #register all the frames (FOR LIGHT MODE AND DARK MODE!!)
 windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame]
-
 ##########################################################################################################
-#ConditionGraph Class
+
 class ConditionGraph:
 
     def __init__(self):
@@ -256,6 +220,9 @@ class ConditionGraph:
             'conditions': {},
             'symptoms': {}
         }
+        # New attributes for adjacency matrix
+        self.condition_names = []
+        self.adjacency_matrix = None
 
     def load_data(self, file_path):
         """Load data from a CSV file and categorize conditions and symptoms."""
@@ -276,6 +243,13 @@ class ConditionGraph:
             print(f"Error: Missing necessary columns (Symptom columns or Condition) in the CSV file.")
             return
 
+        # Store conditions in order
+        unique_conditions = df['Condition'].str.strip().str.lower().unique()
+        self.condition_names = list(unique_conditions)
+
+        # Initialize the adjacency matrix with zeros
+        self.adjacency_matrix = np.zeros((len(self.condition_names), len(self.condition_names)), dtype=int)
+
         for _, row in df.iterrows():
             condition = row['Condition'].strip().lower()
 
@@ -294,6 +268,64 @@ class ConditionGraph:
                     if condition not in self.graph['symptoms'][symptom]:
                         self.graph['symptoms'][symptom].append(condition)
 
+        # Build adjacency matrix
+        self._build_adjacency_matrix()
+
+    def _build_adjacency_matrix(self):
+        """
+        Build an adjacency matrix showing the similarity between conditions
+        based on shared symptoms.
+        """
+        for i, condition1 in enumerate(self.condition_names):
+            for j, condition2 in enumerate(self.condition_names):
+                if i != j:
+                    # Calculate shared symptoms
+                    shared_symptoms = set(self.graph['conditions'][condition1]) & \
+                                      set(self.graph['conditions'][condition2])
+
+                    # Set the adjacency matrix value to the number of shared symptoms
+                    self.adjacency_matrix[i, j] = len(shared_symptoms)
+
+    def get_most_similar_conditions(self, condition, top_n=3):
+        """
+        Find the most similar conditions to a given condition based on shared symptoms.
+
+        Args:
+            condition (str): The condition to find similarities for
+            top_n (int): Number of most similar conditions to return
+
+        Returns:
+            list: Top N most similar conditions
+        """
+        if condition.lower() not in self.condition_names:
+            return []
+
+        # Get the index of the condition
+        condition_index = self.condition_names.index(condition.lower())
+
+        # Get similarities for this condition
+        similarities = self.adjacency_matrix[condition_index]
+
+        # Create a list of tuples (condition, similarity)
+        condition_similarities = list(zip(self.condition_names, similarities))
+
+        # Sort by similarity (excluding self) and get top N
+        similar_conditions = sorted(
+            [cs for cs in condition_similarities if cs[0] != condition.lower()],
+            key=lambda x: x[1],
+            reverse=True
+        )[:top_n]
+
+        return similar_conditions
+
+    def visualize_condition_similarity(self):
+        """
+        Print a visual representation of condition similarities.
+        """
+        print("Condition Similarity Matrix:")
+        print("Conditions:", self.condition_names)
+        print(self.adjacency_matrix)
+
     def match_symptoms_to_conditions(self, symptoms):
         """Match the symptoms entered by the user to corresponding conditions."""
         matched_conditions = set()
@@ -310,15 +342,77 @@ class ConditionGraph:
         suggestions = difflib.get_close_matches(user_input.lower(), valid_list, n=1, cutoff=0.8)
         return suggestions[0] if suggestions else None
 
+def visualize_condition_similarity(condition_graph):
+    """
+    Create a visual heatmap representation of the condition similarity matrix.
+
+    Args:
+        condition_graph (ConditionGraph): The condition graph with the adjacency matrix
+    """
+    # Check if adjacency matrix exists
+    if condition_graph.adjacency_matrix is None:
+        print("No adjacency matrix available. Please load data first.")
+        return
+
+    # Create a figure and axes
+    plt.figure(figsize=(12, 10))
+
+    # Create a heatmap using seaborn
+    sns.heatmap(
+        condition_graph.adjacency_matrix,
+        annot=True,  # Show the actual values
+        cmap='YlGnBu',  # Color map from yellow to green to blue
+        cbar_kws={'label': 'Number of Shared Symptoms'},
+        xticklabels=condition_graph.condition_names,
+        yticklabels=condition_graph.condition_names
+    )
+
+    # Customize the plot
+    plt.title('Condition Similarity Heatmap\n(Based on Shared Symptoms)', fontsize=16)
+    plt.xlabel('Conditions', fontsize=12)
+    plt.ylabel('Conditions', fontsize=12)
+
+    # Rotate x-axis labels for readability
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+
+    # Adjust layout to prevent cutting off labels
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+
+def export_similarity_matrix(condition_graph, filename='condition_similarity_matrix.csv'):
+    """
+    Export the adjacency matrix to a CSV file for further analysis.
+
+    Args:
+        condition_graph (ConditionGraph): The condition graph with the adjacency matrix
+        filename (str): Name of the file to export to
+    """
+    if condition_graph.adjacency_matrix is None:
+        print("No adjacency matrix available. Please load data first.")
+        return
+
+    # Create a DataFrame for easier export
+    similarity_df = pd.DataFrame(
+        condition_graph.adjacency_matrix,
+        index=condition_graph.condition_names,
+        columns=condition_graph.condition_names
+    )
+
+    # Export to CSV
+    similarity_df.to_csv(filename)
+    print(f"Similarity matrix exported to {filename}")
+
+#visualize_condition_similarity(condition_graph)
+#export_similarity_matrix(condition_graph)
 
 #Instantiate ConditionGraph and load data
 condition_graph = ConditionGraph()
 condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
 
-
-
-
-###################################--SYMPTOM MATCHER--#######################################################
 def submit_symptoms():
     # Clear any previous result labels
     for widget in symptom_frame.winfo_children():
@@ -390,23 +484,362 @@ def submit_symptoms():
                                   justify=tk.LEFT)
         no_match_label.pack(pady=10)
 
+
+# Global variable to track current symptom entry frame
+current_symptom_entry_frame = None
+
+
+def create_symptom_entry_page():
+    global current_symptom_entry_frame
+
+    # Clear any existing symptom entry frame
+    if current_symptom_entry_frame:
+        current_symptom_entry_frame.destroy()
+
+    # Create new symptom entry frame
+    current_symptom_entry_frame = tk.Frame(root)
+    current_symptom_entry_frame.pack(fill="both", expand=True)
+
+    tk.Label(current_symptom_entry_frame,
+             text="Multiple Symptom Checker",
+             font=("Arial", 16)).pack(pady=20)
+
+    tk.Label(current_symptom_entry_frame,
+             text="How many symptoms would you like to enter? (1-5)",
+             font=("Arial", 12)).pack(pady=10)
+
+    # Symptom count entry
+    symptom_count_var = tk.StringVar()
+    symptom_count_entry = tk.Entry(current_symptom_entry_frame,
+                                   textvariable=symptom_count_var,
+                                   width=10)
+    symptom_count_entry.pack(pady=10)
+
+    def validate_and_create_symptom_boxes():
+        try:
+            # Validate input
+            symptom_count = int(symptom_count_var.get())
+
+            # Check bounds
+            if symptom_count < 1 or symptom_count > 5:
+                messagebox.showerror("Invalid Input",
+                                     "Please enter a number between 1 and 5.")
+                return
+
+            # Clear previous widgets
+            for widget in current_symptom_entry_frame.winfo_children():
+                if widget not in [symptom_count_entry]:
+                    widget.destroy()
+
+            # Create symptom entry labels and text boxes
+            tk.Label(current_symptom_entry_frame,
+                     text=f"Enter {symptom_count} Symptoms",
+                     font=("Arial", 12)).pack(pady=10)
+
+            # List to hold symptom text boxes
+            symptom_texts = []
+
+            for i in range(symptom_count):
+                tk.Label(current_symptom_entry_frame,
+                         text=f"Symptom {i + 1}:").pack()
+                symptom_text = tk.Text(current_symptom_entry_frame,
+                                       height=2, width=40, wrap=tk.WORD)
+                symptom_text.pack(pady=5)
+                symptom_texts.append(symptom_text)
+
+            def submit_multiple_symptoms():
+                # Collect and process symptoms
+                symptoms = [text.get("1.0", tk.END).strip().lower() for text in symptom_texts]
+
+                # Remove any empty symptoms
+                symptoms = [symptom for symptom in symptoms if symptom]
+
+                # Validate symptoms are not empty
+                if not symptoms:
+                    messagebox.showwarning("No Symptoms",
+                                           "Please enter at least one symptom.")
+                    return
+
+                # List of all valid symptoms from the graph
+                valid_symptoms = list(condition_graph.graph['symptoms'].keys())
+
+                # Track matched conditions
+                matched_conditions = set()
+                suggestions = {}
+                unmatched_symptoms = []
+
+                # Process each symptom
+                for symptom in symptoms:
+                    if symptom in condition_graph.graph['symptoms']:
+                        # Direct match found
+                        matched_conditions.update(condition_graph.graph['symptoms'][symptom])
+                    else:
+                        # Try to find a suggestion
+                        suggestion = condition_graph.suggest_correction(symptom, valid_symptoms)
+                        if suggestion:
+                            suggestions[symptom] = suggestion
+                            matched_conditions.update(condition_graph.graph['symptoms'][suggestion])
+                        else:
+                            unmatched_symptoms.append(symptom)
+
+                # Clear previous result labels
+                for widget in current_symptom_entry_frame.winfo_children():
+                    if isinstance(widget, tk.Label) and not widget.cget("text").startswith((
+                            "Multiple", "How", "Enter", "Symptom")):
+                        widget.destroy()
+
+                # Display results
+                if matched_conditions:
+                    # Conditions matched label
+                    conditions_label = tk.Label(current_symptom_entry_frame,
+                                                text=f"Conditions with ALL symptoms:\n{', '.join(matched_conditions)}",
+                                                wraplength=400,
+                                                justify=tk.LEFT)
+                    conditions_label.pack(pady=10)
+
+                    # Suggestions label (if any)
+                    if suggestions:
+                        suggestion_text = "Symptom Suggestions:\n" + \
+                                          "\n".join([f"'{orig}' -> '{sugg}'" for orig, sugg in suggestions.items()])
+                        suggestions_label = tk.Label(current_symptom_entry_frame,
+                                                     text=suggestion_text,
+                                                     fg="blue",
+                                                     wraplength=400,
+                                                     justify=tk.LEFT)
+                        suggestions_label.pack(pady=5)
+
+                else:
+                    # No matches found
+                    no_match_label = tk.Label(current_symptom_entry_frame,
+                                              text="No conditions matched the symptoms entered.",
+                                              fg="red",
+                                              wraplength=400)
+                    no_match_label.pack(pady=10)
+
+            # Submit button for multiple symptoms
+            submit_button = tk.Button(current_symptom_entry_frame,
+                                      text="Submit Symptoms",
+                                      command=submit_multiple_symptoms)
+            submit_button.pack(pady=10)
+
+            # Back to Homepage Button
+            back_button = tk.Button(current_symptom_entry_frame,
+                                    text="Back to Homepage",
+                                    command=show_homepage)
+            back_button.pack(pady=10)
+
+        except ValueError:
+            messagebox.showerror("Invalid Input",
+                                 "Please enter a valid number.")
+
+    # Button to generate symptom boxes
+    generate_boxes_button = tk.Button(current_symptom_entry_frame,
+                                      text="Generate Symptom Boxes",
+                                      command=validate_and_create_symptom_boxes)
+    generate_boxes_button.pack(pady=10)
+
+    # Back to Homepage Button
+    back_button = tk.Button(current_symptom_entry_frame,
+                            text="Back to Homepage",
+                            command=show_homepage)
+    back_button.pack(pady=10)
+
+
+# Modify homepage to include Multiple Symptom Checker
+tk.Button(homepage_frame,
+          text="Multiple Symptom Checker",
+          command=create_symptom_entry_page,
+          width=30).pack(pady=10)
+
 def search_condition():
     search_term = condition_entry.get().strip().lower()
-    suggested_condition = condition_graph.suggest_correction(search_term, list(condition_graph.graph['conditions'].keys()))
-    if suggested_condition:
-        messagebox.showinfo("Condition Found", f"Found: {suggested_condition}")
-        symptoms = condition_graph.graph['conditions'][suggested_condition]
-        messagebox.showinfo("Symptoms", f"Symptoms: {', '.join(symptoms)}")
-    else:
-        messagebox.showinfo("Condition Not Found", f"No condition found for '{search_term}'.")
 
-tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
-tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
+    # Clear any previous result labels
+    for widget in condition_search_frame.winfo_children():
+        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
+            widget.destroy()
+
+    # Try to find an exact or suggested match
+    if search_term in condition_graph.graph['conditions']:
+        # Exact match found
+        matched_condition = search_term
+        symptoms = condition_graph.graph['conditions'][matched_condition]
+
+        # Create labels for condition and symptoms
+        condition_label = tk.Label(condition_search_frame,
+                                   text=f"Condition Found: {matched_condition.capitalize()}",
+                                   font=("Arial", 12, "bold"),
+                                   wraplength=400)
+        condition_label.pack(pady=10)
+
+        symptoms_label = tk.Label(condition_search_frame,
+                                  text=f"Symptoms: {', '.join(symptoms)}",
+                                  wraplength=400,
+                                  justify=tk.LEFT)
+        symptoms_label.pack(pady=5)
+
+    else:
+        # Try to find a suggestion
+        suggested_condition = condition_graph.suggest_correction(search_term,
+                                                                 list(condition_graph.graph['conditions'].keys()))
+
+        if suggested_condition:
+            # Suggestion found
+            symptoms = condition_graph.graph['conditions'][suggested_condition]
+
+            # Create labels for suggested condition and symptoms
+            suggestion_label = tk.Label(condition_search_frame,
+                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
+                                        fg="blue",
+                                        font=("Arial", 12, "bold"),
+                                        wraplength=400)
+            suggestion_label.pack(pady=10)
+
+            symptoms_label = tk.Label(condition_search_frame,
+                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
+                                      wraplength=400,
+                                      justify=tk.LEFT)
+            symptoms_label.pack(pady=5)
+
+        else:
+            # No match found
+            no_match_label = tk.Label(condition_search_frame,
+                                      text=f"No condition found for '{search_term}'.",
+                                      fg="red",
+                                      wraplength=400)
+            no_match_label.pack(pady=10)
+
+
+def alert_system(pain_level):
+    """
+    Generates an alert message based on the user's reported pain level.
+
+    Args:
+        pain_level (int): Pain level on a scale of 1-10
+
+    Returns:
+        tuple: A tuple containing a message and a severity level
+    """
+    # Validate input
+    if not isinstance(pain_level, int) or pain_level < 1 or pain_level > 10:
+        return "Invalid pain level. Please enter a number between 1 and 10.", "error"
+
+    # Pain level categories and corresponding messages
+    if 1 <= pain_level <= 3:
+        return (
+            "Low Pain Level Alert:\n"
+            "You appear to be experiencing minimal discomfort. "
+            "Monitor your symptoms carefully. "
+            "If pain persists or worsens, consult a medical professional.",
+            "low"
+        )
+
+    elif 4 <= pain_level <= 7:
+        return (
+            "Moderate Pain Level Alert:\n"
+            "You are experiencing significant pain. "
+            "We recommend scheduling an appointment with your doctor "
+            "or visiting a hospital for a thorough medical evaluation.",
+            "moderate"
+        )
+
+    else:  # 8-10 pain level
+        return (
+            "SEVERE PAIN ALERT:\n"
+            "YOU ARE EXPERIENCING EXTREMELY HIGH PAIN LEVELS. "
+            "IMMEDIATE MEDICAL ATTENTION IS CRITICAL. "
+            "CALL EMERGENCY SERVICES (911) OR GO TO THE NEAREST EMERGENCY ROOM IMMEDIATELY.",
+            "severe"
+        )
+
+# Add this to your navigation functions
+def show_pain_assessment_page():
+    hide_all_frames()
+    pain_assessment_frame.pack(fill="both", expand=True)
+
+
+# Add this after your existing page definitions
+# Pain Assessment Page
+pain_assessment_frame = tk.Frame(root)
+tk.Label(pain_assessment_frame, text="Pain Level Assessment", font=("Arial", 16)).pack(pady=20)
+
+# Pain Level Description Label
+pain_description_label = tk.Label(pain_assessment_frame,
+                                  text="Rate your pain on a scale of 1-10\n"
+                                       "1-3: Mild Discomfort\n"
+                                       "4-7: Significant Pain\n"
+                                       "8-10: Severe Pain",
+                                  justify=tk.LEFT,
+                                  wraplength=400)
+pain_description_label.pack(pady=10)
+
+# Pain Level Entry
+tk.Label(pain_assessment_frame, text="Enter your current pain level (1-10):").pack()
+pain_entry = tk.Entry(pain_assessment_frame, width=10)
+pain_entry.pack(pady=10)
+
+
+def show_pain_alert():
+    try:
+        pain_level = int(pain_entry.get())
+        message, severity = alert_system(pain_level)
+
+        # Clear previous alert labels
+        for widget in pain_assessment_frame.winfo_children():
+            if isinstance(widget, tk.Label) and widget not in [
+                pain_description_label,
+                pain_assessment_frame.winfo_children()[0]  # Keep the title label
+            ]:
+                widget.destroy()
+
+        # Create a new label for the alert
+        if severity == "low":
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="green",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+        elif severity == "moderate":
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="orange",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+        else:  # severe
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="red",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+
+        alert_label.pack(pady=10)
+
+    except ValueError:
+        messagebox.showerror("Error", "Please enter a valid number between 1 and 10")
+
+
+# Check Pain Level Button
+check_pain_button = tk.Button(pain_assessment_frame,
+                              text="Check Pain Level",
+                              command=show_pain_alert)
+check_pain_button.pack(pady=10)
+
+# Back to Homepage Button
+back_to_homepage_button = tk.Button(pain_assessment_frame,
+                                    text="Back to Homepage",
+                                    command=show_homepage)
+back_to_homepage_button.pack(pady=10)
+
+# Modify your homepage to include a button for Pain Assessment
+# Find the homepage_frame section and add:
+tk.Button(homepage_frame, text="Pain Level Assessment", command=show_pain_assessment_page, width=30).pack(pady=10)
 
 # Submit Symptoms Button
 submit_button = tk.Button(symptom_frame, text="Submit Symptoms", command=submit_symptoms)
 submit_button.pack(pady=10)
 
+tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
+tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
 
 #Show Homepage by default
 show_homepage()
