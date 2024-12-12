@@ -288,15 +288,64 @@ def submit_symptoms():
                                   justify=tk.LEFT)
         no_match_label.pack(pady=10)
 
+
 def search_condition():
     search_term = condition_entry.get().strip().lower()
-    suggested_condition = condition_graph.suggest_correction(search_term, list(condition_graph.graph['conditions'].keys()))
-    if suggested_condition:
-        messagebox.showinfo("Condition Found", f"Found: {suggested_condition}")
-        symptoms = condition_graph.graph['conditions'][suggested_condition]
-        messagebox.showinfo("Symptoms", f"Symptoms: {', '.join(symptoms)}")
+
+    # Clear any previous result labels
+    for widget in condition_search_frame.winfo_children():
+        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
+            widget.destroy()
+
+    # Try to find an exact or suggested match
+    if search_term in condition_graph.graph['conditions']:
+        # Exact match found
+        matched_condition = search_term
+        symptoms = condition_graph.graph['conditions'][matched_condition]
+
+        # Create labels for condition and symptoms
+        condition_label = tk.Label(condition_search_frame,
+                                   text=f"Condition Found: {matched_condition.capitalize()}",
+                                   font=("Arial", 12, "bold"),
+                                   wraplength=400)
+        condition_label.pack(pady=10)
+
+        symptoms_label = tk.Label(condition_search_frame,
+                                  text=f"Symptoms: {', '.join(symptoms)}",
+                                  wraplength=400,
+                                  justify=tk.LEFT)
+        symptoms_label.pack(pady=5)
+
     else:
-        messagebox.showinfo("Condition Not Found", f"No condition found for '{search_term}'.")
+        # Try to find a suggestion
+        suggested_condition = condition_graph.suggest_correction(search_term,
+                                                                 list(condition_graph.graph['conditions'].keys()))
+
+        if suggested_condition:
+            # Suggestion found
+            symptoms = condition_graph.graph['conditions'][suggested_condition]
+
+            # Create labels for suggested condition and symptoms
+            suggestion_label = tk.Label(condition_search_frame,
+                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
+                                        fg="blue",
+                                        font=("Arial", 12, "bold"),
+                                        wraplength=400)
+            suggestion_label.pack(pady=10)
+
+            symptoms_label = tk.Label(condition_search_frame,
+                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
+                                      wraplength=400,
+                                      justify=tk.LEFT)
+            symptoms_label.pack(pady=5)
+
+        else:
+            # No match found
+            no_match_label = tk.Label(condition_search_frame,
+                                      text=f"No condition found for '{search_term}'.",
+                                      fg="red",
+                                      wraplength=400)
+            no_match_label.pack(pady=10)
 
 # Submit Symptoms Button
 submit_button = tk.Button(symptom_frame, text="Submit Symptoms", command=submit_symptoms)
