@@ -345,7 +345,7 @@ def submit_symptoms():
     #tk.END refers to the end of the text in the widget.
     #"1.0", tk.END essentially extracts all text from the widget
     symptoms = [text.get("1.0", tk.END).strip().lower() for text in symptom_texts]
-    #list comphrension; used to filter our empty entries from a list
+    #list comprehension; used to filter our empty entries from a list
     #"symptom for symptom in symptoms" iterates each item in symptom list
     #if symptom condition ensures that only non empty entries are included in the list
     symptoms = [symptom for symptom in symptoms if symptom]  # Remove empty entries
@@ -482,6 +482,78 @@ tk.Label(condition_search_frame, text="Search for a Medical Condition", font=("A
 condition_entry = tk.Entry(condition_search_frame, width=40)
 condition_entry.pack(pady=10)
 
+def search_condition():
+    # global variables for search condition
+    global suggestion_label, no_match_label, condition_label
+
+    # Clear any previous result labels
+    for widget in condition_search_frame.winfo_children():
+        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
+            widget.destroy()
+
+    search_term = condition_entry.get().strip().lower()
+
+    #reset globals
+    suggestion_label = None
+    no_match_label = None
+    condition_label = None
+
+    # Try to find an exact or suggested match
+    if search_term in condition_graph.graph['conditions']:
+        # Exact match found
+        matched_condition = search_term
+        symptoms = condition_graph.graph['conditions'][matched_condition]
+
+        # Create labels for condition and symptoms
+        condition_label = tk.Label(condition_search_frame,
+                                   text=f"Condition Found: {matched_condition.capitalize()}", fg = "green",
+                                   font=("Arial", 12, "bold"),
+                                   wraplength=400)
+        condition_label.pack(pady=10)
+
+        symptoms_label = tk.Label(condition_search_frame,
+                                  text=f"Symptoms: {', '.join(symptoms)}",
+                                  wraplength=400,
+                                  justify=tk.LEFT)
+        symptoms_label.pack(pady=5)
+
+    else:
+        # Try to find a suggestion
+        suggested_condition = condition_graph.suggest_correction(search_term,
+                                                                 list(condition_graph.graph['conditions'].keys()))
+
+        if suggested_condition:
+            # Suggestion found
+            symptoms = condition_graph.graph['conditions'][suggested_condition]
+
+            # Create labels for suggested condition and symptoms
+            suggestion_label = tk.Label(condition_search_frame,
+                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
+                                        fg="blue",
+                                        font=("Arial", 12, "bold"),
+                                        wraplength=400)
+            suggestion_label.pack(pady=10)
+
+            symptoms_label = tk.Label(condition_search_frame,
+                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
+                                      wraplength=400,
+                                      justify=tk.LEFT)
+            symptoms_label.pack(pady=5)
+
+        else:
+            # No match found
+            no_match_label = tk.Label(condition_search_frame,
+                                      text=f"No condition found for '{search_term}'.",
+                                      fg="red",
+                                      wraplength=400)
+            no_match_label.pack(pady=10)
+
+    # Reapply theme to the symptom_frame and its children
+    apply_theme(condition_search_frame, bg="#26242f" if not switch_value else "white",
+                    fg="white" if not switch_value else "black")
+
+tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
+tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
 ################################################################################
 #Pain Assessment Page
 pain_assessment_frame = tk.Frame(root)
@@ -600,7 +672,7 @@ def check_dangerous_symptoms(symptoms, dangerous_symptoms):
 
     Args:
         symptoms (list): List of symptoms entered by the user
-        dangerous_symptoms (list, optional): List of medically critical symptoms
+        dangerous_symptoms (list): List of medically critical symptoms
 
     Returns:
         list: List of detected dangerous symptoms
@@ -685,7 +757,7 @@ def integrate_dangerous_symptoms_check(symptoms):
     if dangerous_symptoms:
         show_dangerous_symptoms_alert(dangerous_symptoms)
 
-        # Optional: Automatically trigger pain assessment page
+        # Trigger pain assessment page
         show_pain_assessment_page()
 
 # Check Pain Level Button
@@ -770,79 +842,6 @@ class ConditionGraph:
 #Instantiate ConditionGraph and load data
 condition_graph = ConditionGraph()
 condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
-
-def search_condition():
-    # global variables for search condition
-    global suggestion_label, no_match_label, condition_label
-
-    # Clear any previous result labels
-    for widget in condition_search_frame.winfo_children():
-        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
-            widget.destroy()
-
-    search_term = condition_entry.get().strip().lower()
-
-    #reset globals
-    suggestion_label = None
-    no_match_label = None
-    condition_label = None
-
-    # Try to find an exact or suggested match
-    if search_term in condition_graph.graph['conditions']:
-        # Exact match found
-        matched_condition = search_term
-        symptoms = condition_graph.graph['conditions'][matched_condition]
-
-        # Create labels for condition and symptoms
-        condition_label = tk.Label(condition_search_frame,
-                                   text=f"Condition Found: {matched_condition.capitalize()}", fg = "green",
-                                   font=("Arial", 12, "bold"),
-                                   wraplength=400)
-        condition_label.pack(pady=10)
-
-        symptoms_label = tk.Label(condition_search_frame,
-                                  text=f"Symptoms: {', '.join(symptoms)}",
-                                  wraplength=400,
-                                  justify=tk.LEFT)
-        symptoms_label.pack(pady=5)
-
-    else:
-        # Try to find a suggestion
-        suggested_condition = condition_graph.suggest_correction(search_term,
-                                                                 list(condition_graph.graph['conditions'].keys()))
-
-        if suggested_condition:
-            # Suggestion found
-            symptoms = condition_graph.graph['conditions'][suggested_condition]
-
-            # Create labels for suggested condition and symptoms
-            suggestion_label = tk.Label(condition_search_frame,
-                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
-                                        fg="blue",
-                                        font=("Arial", 12, "bold"),
-                                        wraplength=400)
-            suggestion_label.pack(pady=10)
-
-            symptoms_label = tk.Label(condition_search_frame,
-                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
-                                      wraplength=400,
-                                      justify=tk.LEFT)
-            symptoms_label.pack(pady=5)
-
-        else:
-            # No match found
-            no_match_label = tk.Label(condition_search_frame,
-                                      text=f"No condition found for '{search_term}'.",
-                                      fg="red",
-                                      wraplength=400)
-            no_match_label.pack(pady=10)
-
-    # Reapply theme to the symptom_frame and its children
-    apply_theme(condition_search_frame, bg="#26242f" if not switch_value else "white",
-                    fg="white" if not switch_value else "black")
-
-tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
-tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
 
 #Show Homepage by default
 show_homepage()
