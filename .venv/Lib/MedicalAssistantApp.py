@@ -3,9 +3,6 @@ from tkinter import ttk
 from tkinter import *
 from tkinter import messagebox
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
 import difflib
 import sys
 from PIL import Image, ImageTk
@@ -72,8 +69,8 @@ def hide_all_frames():
 #GUI setup
 root = tk.Tk() #creates main app window; starting point for any Tkinter app
 root.title("Medical Assistant App") #sets title of app window
-root.geometry("500x600") #sets the size of the window
-#dict to trafck all frames
+root.geometry("1024x768") #sets the size of the window
+#dict to track all frames
 windows = {}
 ##############################################################################################################
 #Homepage
@@ -121,8 +118,8 @@ tk.Label(profile_frame, text="Profile Information", font=("Arial", 16)).pack(pad
 tk.Label(profile_frame, text="Choose Light Mode or Dark Mode:").pack(anchor="w",padx=20)
 
 #adding light and dark mode images
-lightImage = Image.open('images\light mode.png')
-darkImage = Image.open('images\dark mode.png')
+lightImage = Image.open('images/light mode.png')
+darkImage = Image.open('images/dark mode.png')
 
 #RESIZING EACH IMAGE USING PILLOW LIBRARY
 #SOURCE: https://www.geeksforgeeks.org/how-to-resize-image-in-python-tkinter/
@@ -194,7 +191,6 @@ def toggle():
     if condition_label:
         condition_label.config(fg="green")
 
-
 #creating a button to toggle between light and dark themes
 switch = Button(profile_frame, image=light, bd=0, bg = "white", activebackground = "white", command=toggle)
 switch.pack(anchor="w",padx=20)
@@ -243,20 +239,18 @@ tk.Button(profile_frame, text="Save Profile", command=save_profile).pack(pady=10
 #command = show_homepage; goes back to homepage
 tk.Button(profile_frame, text="Back to Homepage", command=show_homepage).pack(pady=10)
 
-
-# Symptom P################################################################################age
+#################################################################################
 # Symptom Page
 symptom_frame = tk.Frame(root)
 
 #title label
 tk.Label(symptom_frame, text="Symptom Checker", font=("Arial", 16)).pack(pady=20)
 
-#lbael and entry for symptop, count
+#label and entry for symptom, count
 tk.Label(symptom_frame, text="How many symptoms would you like to enter? (1-5)", font=("Arial", 12)).pack(pady=20)
 symptom_count_val = tk.StringVar() #variable to hold the number of symptopms
 symptom_count_entry = tk.Entry(symptom_frame, textvariable=symptom_count_val, width=10)
 symptom_count_entry.pack(pady=10)
-
 
 # Global variables
 symptom_texts = [] #list to build text widgets for symptoms
@@ -318,6 +312,18 @@ def symptom_boxes():
     except ValueError:
         messagebox.showerror("Invalid Input", "Please enter a valid number.")
 
+dangerous_symptoms = [
+    "Coughing Blood",
+    "Chest Pain",
+    "Slurred Speech",
+    "Paralysis",
+    "Unexplained Weight Loss",
+    "Severe Shortness of Breath",
+    "Stiff Neck with Fever",
+    "Irregular Heartbeat",
+    "Persistent High Fever"
+]
+
 def submit_symptoms():
     # Collect and process symptoms from text boxes and matches to condition
     #NOTE: global declares a variable in the global scope, which means it can be accessed and modified inside functions
@@ -335,19 +341,18 @@ def submit_symptoms():
     #if symptom condition ensures that only non empty entries are included in the list
     symptoms = [symptom for symptom in symptoms if symptom]  # Remove empty entries
 
+    integrate_dangerous_symptoms_check(symptoms)
+
     if not symptoms:
         messagebox.showwarning("No Symptoms", "Please enter at least one symptom.")
         return
 
-    matched_conditions = set() #conditions matches with symptoms
-    unmatched_symptoms = [] #symptoms that could not be matched
-
-    # match symptoms to conditions
-    for symptom in symptoms:
-        if symptom in condition_graph.graph['symptoms']:
-            matched_conditions.update(condition_graph.graph['symptoms'][symptom])
-        else:
-            unmatched_symptoms.append(symptom)
+    # Find conditions that have ALL symptoms
+    matched_conditions = set()
+    for condition, condition_symptoms in condition_graph.graph['conditions'].items():
+        # Check if ALL user symptoms are in the condition's symptoms
+        if all(symptom in condition_symptoms for symptom in symptoms):
+            matched_conditions.add(condition)
 
     # Clear previous result labels
     for widget in symptom_frame.winfo_children():
@@ -361,14 +366,12 @@ def submit_symptoms():
                  fg="green",
                  wraplength=400,
                  justify=tk.LEFT).pack(pady=10)
-
-    #display unmatched symptoms, if any
-    if unmatched_symptoms:
+    else:
         tk.Label(symptom_frame,
-                 text=f"Unmatched Symptoms:\n{', '.join(unmatched_symptoms)}",
+                 text="No conditions found matching all symptoms.",
                  fg="red",
                  wraplength=400,
-                 justify=tk.LEFT).pack(pady=5)
+                 justify=tk.LEFT).pack(pady=10)
 
 
 #resets the symptom page, clears all text boxes and asks the user for a new num of symptoms
@@ -429,6 +432,7 @@ condition_entry.pack(pady=10)
 windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame]
 ##########################################################################################################
 
+#ConditionGraph Class
 class ConditionGraph:
 
     def __init__(self):
@@ -436,9 +440,6 @@ class ConditionGraph:
             'conditions': {},
             'symptoms': {}
         }
-        # New attributes for adjacency matrix
-        self.condition_names = []
-        self.adjacency_matrix = None
 
     def load_data(self, file_path):
         """Load data from a CSV file and categorize conditions and symptoms."""
@@ -459,13 +460,6 @@ class ConditionGraph:
             print(f"Error: Missing necessary columns (Symptom columns or Condition) in the CSV file.")
             return
 
-        # Store conditions in order
-        unique_conditions = df['Condition'].str.strip().str.lower().unique()
-        self.condition_names = list(unique_conditions)
-
-        # Initialize the adjacency matrix with zeros
-        self.adjacency_matrix = np.zeros((len(self.condition_names), len(self.condition_names)), dtype=int)
-
         for _, row in df.iterrows():
             condition = row['Condition'].strip().lower()
 
@@ -484,64 +478,6 @@ class ConditionGraph:
                     if condition not in self.graph['symptoms'][symptom]:
                         self.graph['symptoms'][symptom].append(condition)
 
-        # Build adjacency matrix
-        self._build_adjacency_matrix()
-
-    def _build_adjacency_matrix(self):
-        """
-        Build an adjacency matrix showing the similarity between conditions
-        based on shared symptoms.
-        """
-        for i, condition1 in enumerate(self.condition_names):
-            for j, condition2 in enumerate(self.condition_names):
-                if i != j:
-                    # Calculate shared symptoms
-                    shared_symptoms = set(self.graph['conditions'][condition1]) & \
-                                      set(self.graph['conditions'][condition2])
-
-                    # Set the adjacency matrix value to the number of shared symptoms
-                    self.adjacency_matrix[i, j] = len(shared_symptoms)
-
-    def get_most_similar_conditions(self, condition, top_n=3):
-        """
-        Find the most similar conditions to a given condition based on shared symptoms.
-
-        Args:
-            condition (str): The condition to find similarities for
-            top_n (int): Number of most similar conditions to return
-
-        Returns:
-            list: Top N most similar conditions
-        """
-        if condition.lower() not in self.condition_names:
-            return []
-
-        # Get the index of the condition
-        condition_index = self.condition_names.index(condition.lower())
-
-        # Get similarities for this condition
-        similarities = self.adjacency_matrix[condition_index]
-
-        # Create a list of tuples (condition, similarity)
-        condition_similarities = list(zip(self.condition_names, similarities))
-
-        # Sort by similarity (excluding self) and get top N
-        similar_conditions = sorted(
-            [cs for cs in condition_similarities if cs[0] != condition.lower()],
-            key=lambda x: x[1],
-            reverse=True
-        )[:top_n]
-
-        return similar_conditions
-
-    def visualize_condition_similarity(self):
-        """
-        Print a visual representation of condition similarities.
-        """
-        print("Condition Similarity Matrix:")
-        print("Conditions:", self.condition_names)
-        print(self.adjacency_matrix)
-
     def match_symptoms_to_conditions(self, symptoms):
         """Match the symptoms entered by the user to corresponding conditions."""
         matched_conditions = set()
@@ -558,77 +494,10 @@ class ConditionGraph:
         suggestions = difflib.get_close_matches(user_input.lower(), valid_list, n=1, cutoff=0.8)
         return suggestions[0] if suggestions else None
 
-def visualize_condition_similarity(condition_graph):
-    """
-    Create a visual heatmap representation of the condition similarity matrix.
-
-    Args:
-        condition_graph (ConditionGraph): The condition graph with the adjacency matrix
-    """
-    # Check if adjacency matrix exists
-    if condition_graph.adjacency_matrix is None:
-        print("No adjacency matrix available. Please load data first.")
-        return
-
-    # Create a figure and axes
-    plt.figure(figsize=(12, 10))
-
-    # Create a heatmap using seaborn
-    sns.heatmap(
-        condition_graph.adjacency_matrix,
-        annot=True,  # Show the actual values
-        cmap='YlGnBu',  # Color map from yellow to green to blue
-        cbar_kws={'label': 'Number of Shared Symptoms'},
-        xticklabels=condition_graph.condition_names,
-        yticklabels=condition_graph.condition_names
-    )
-
-    # Customize the plot
-    plt.title('Condition Similarity Heatmap\n(Based on Shared Symptoms)', fontsize=16)
-    plt.xlabel('Conditions', fontsize=12)
-    plt.ylabel('Conditions', fontsize=12)
-
-    # Rotate x-axis labels for readability
-    plt.xticks(rotation=45, ha='right')
-    plt.yticks(rotation=0)
-
-    # Adjust layout to prevent cutting off labels
-    plt.tight_layout()
-
-    # Show the plot
-    plt.show()
-
-
-def export_similarity_matrix(condition_graph, filename='condition_similarity_matrix.csv'):
-    """
-    Export the adjacency matrix to a CSV file for further analysis.
-
-    Args:
-        condition_graph (ConditionGraph): The condition graph with the adjacency matrix
-        filename (str): Name of the file to export to
-    """
-    if condition_graph.adjacency_matrix is None:
-        print("No adjacency matrix available. Please load data first.")
-        return
-
-    # Create a DataFrame for easier export
-    similarity_df = pd.DataFrame(
-        condition_graph.adjacency_matrix,
-        index=condition_graph.condition_names,
-        columns=condition_graph.condition_names
-    )
-
-    # Export to CSV
-    similarity_df.to_csv(filename)
-    print(f"Similarity matrix exported to {filename}")
-
-#visualize_condition_similarity(condition_graph)
-#export_similarity_matrix(condition_graph)
 
 #Instantiate ConditionGraph and load data
 condition_graph = ConditionGraph()
 condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
-
 
 def search_condition():
     # global variables for search condition
@@ -699,10 +568,6 @@ def search_condition():
     # Reapply theme to the symptom_frame and its children
     apply_theme(condition_search_frame, bg="#26242f" if not switch_value else "white",
                     fg="white" if not switch_value else "black")
-
-
-
-
 
 def alert_system(pain_level):
     """
@@ -811,6 +676,111 @@ def show_pain_alert():
     except ValueError:
         messagebox.showerror("Error", "Please enter a valid number between 1 and 10")
 
+most_dangerous_symptoms = [
+    "Coughing Blood",
+    "Chest Pain",
+    "Slurred Speech",
+    "Paralysis",
+    "Unexplained Weight Loss",
+    "Severe Shortness of Breath",
+    "Stiff Neck with Fever",
+    "Irregular Heartbeat",
+    "Persistent High Fever"
+]
+
+def check_dangerous_symptoms(symptoms, dangerous_symptoms):
+    """
+    Check if any of the user's symptoms are in the list of dangerous symptoms.
+
+    Args:
+        symptoms (list): List of symptoms entered by the user
+        dangerous_symptoms (list, optional): List of medically critical symptoms
+
+    Returns:
+        list: List of detected dangerous symptoms
+    """
+    # Normalize symptoms for comparison
+    symptoms_lower = [str(symptom).lower().strip() for symptom in symptoms]
+    dangerous_symptoms_lower = [str(symptom).lower().strip() for symptom in dangerous_symptoms]
+
+    # Find intersection of symptoms
+    detected_dangerous_symptoms = [
+        symptom for symptom in symptoms_lower
+        if any(symptom == dangerous_symptom in symptom for dangerous_symptom in dangerous_symptoms_lower)
+    ]
+
+    return detected_dangerous_symptoms
+
+def show_dangerous_symptoms_alert(dangerous_symptoms):
+    """
+    Create a popup window for dangerous symptoms alert.
+
+    Args:
+        dangerous_symptoms (list): List of detected dangerous symptoms
+    """
+    # Create a top-level window for the alert
+    alert_window = tk.Toplevel(root)
+    alert_window.title("CRITICAL MEDICAL ALERT")
+    alert_window.geometry("600x600")
+    alert_window.configure(bg='red')
+
+    # Create a bold, large font
+    alert_font = ("Arial", 14, "bold")
+
+    # Alert title
+    tk.Label(alert_window,
+             text="MEDICAL EMERGENCY ALERT",
+             font=("Arial", 18, "bold"),
+             fg='white',
+             bg='red').pack(pady=10)
+
+    # Dangerous symptoms message
+    symptoms_text = "Dangerous Symptoms Detected:\n" + "\n".join(dangerous_symptoms)
+    tk.Label(alert_window,
+             text=symptoms_text,
+             font=alert_font,
+             fg='white',
+             bg='red',
+             wraplength=350).pack(pady=10)
+
+    # Emergency instructions
+    tk.Label(alert_window,
+             text="CALL EMERGENCY SERVICES (911) IMMEDIATELY",
+             font=("Arial", 16, "bold"),
+             fg='yellow',
+             bg='red').pack(pady=10)
+
+    # Close button
+    tk.Button(alert_window,
+              text="Close Alert",
+              command=alert_window.destroy,
+              bg='white',
+              fg='red').pack(pady=10)
+
+
+def integrate_dangerous_symptoms_check(symptoms):
+    """
+    Integrate dangerous symptoms check into symptom submission process.
+
+    Args:
+        symptoms (list): List of symptoms entered by the user
+    """
+
+    # Debug: print input symptoms
+    print("Checking symptoms:", symptoms)
+
+    # Check for dangerous symptoms
+    dangerous_symptoms = check_dangerous_symptoms(symptoms, most_dangerous_symptoms)
+
+    # Debug: print detected dangerous symptoms
+    print("Detected dangerous symptoms:", dangerous_symptoms)
+
+    # If dangerous symptoms are found, show alert
+    if dangerous_symptoms:
+        show_dangerous_symptoms_alert(dangerous_symptoms)
+
+        # Optional: Automatically trigger pain assessment page
+        show_pain_assessment_page()
 
 # Check Pain Level Button
 check_pain_button = tk.Button(pain_assessment_frame,
