@@ -58,11 +58,20 @@ def show_conditionSearch_page():
     hide_all_frames()
     condition_search_frame.pack(fill="both", expand=True)
 
+#displays the pain assessment page by hiding other frames and showing the pain_assessment_frame
+def show_pain_assessment_page():
+    hide_all_frames()
+    pain_assessment_frame.pack(fill="both", expand=True)
+    # Reapply theme to the pain assessment frame
+    apply_theme(pain_assessment_frame,
+                bg="#26242f" if not switch_value else "white",
+                fg="white" if not switch_value else "black")
+
 #hides all frames to prepare for showing a specific frame
 #used for apps that use multiple frames but only shows one at a time
 def hide_all_frames():
     #iterate over the list of frames
-    for frame in [homepage_frame, profile_frame, symptom_frame, condition_search_frame]:
+    for frame in [homepage_frame, profile_frame, symptom_frame, condition_search_frame, pain_assessment_frame]:
         #method that removes the widget (a frame) from the visible layout
         frame.pack_forget() #removes it from the layout, hiding it from view without destroying it
 ###########################################################################################################
@@ -349,10 +358,33 @@ def submit_symptoms():
 
     # Find conditions that have ALL symptoms
     matched_conditions = set()
+    unmatched_symptoms = []
+    suggested_symptoms = {}  # Dictionary to track suggested corrections
+
+    # First pass: check for exact matches
     for condition, condition_symptoms in condition_graph.graph['conditions'].items():
         # Check if ALL user symptoms are in the condition's symptoms
         if all(symptom in condition_symptoms for symptom in symptoms):
             matched_conditions.add(condition)
+
+    # If no exact matches, try to find suggestions
+    if not matched_conditions:
+        # Check for symptoms in the graph
+        for symptom in symptoms:
+            if symptom not in condition_graph.graph['symptoms']:
+                # Try to find a close match for unmatched symptoms
+                suggestion = condition_graph.suggest_correction(symptom, list(condition_graph.graph['symptoms'].keys()))
+                if suggestion:
+                    # If a suggestion is found, store it
+                    suggested_symptoms[symptom] = suggestion
+                else:
+                    unmatched_symptoms.append(symptom)
+
+        # Recheck with suggested symptoms
+        if not unmatched_symptoms:
+            for condition, condition_symptoms in condition_graph.graph['conditions'].items():
+                if all(symptom in condition_symptoms for symptom in symptoms):
+                    matched_conditions.add(condition)
 
     # Clear previous result labels
     for widget in symptom_frame.winfo_children():
@@ -366,7 +398,29 @@ def submit_symptoms():
                  fg="green",
                  wraplength=400,
                  justify=tk.LEFT).pack(pady=10)
-    else:
+
+    # Display suggestions for mistyped symptoms
+    if suggested_symptoms:
+        suggestion_text = "Did you mean:\n"
+        for original, suggestion in suggested_symptoms.items():
+            suggestion_text += f"- '{original}' → '{suggestion}'\n"
+
+        tk.Label(symptom_frame,
+                 text=suggestion_text,
+                 fg="blue",
+                 wraplength=400,
+                 justify=tk.LEFT).pack(pady=5)
+
+    # Display unmatched symptoms
+    if unmatched_symptoms:
+        tk.Label(symptom_frame,
+                 text=f"Unmatched Symptoms:\n{', '.join(unmatched_symptoms)}",
+                 fg="red",
+                 wraplength=400,
+                 justify=tk.LEFT).pack(pady=5)
+
+    # If no conditions found and no suggestions
+    if not matched_conditions and not suggested_symptoms:
         tk.Label(symptom_frame,
                  text="No conditions found matching all symptoms.",
                  fg="red",
@@ -386,7 +440,7 @@ def reset_symptom_page():
     #reinitialize the page
     # title label
     tk.Label(symptom_frame, text="Symptom Checker", font=("Arial", 16)).pack(pady=20)
-    # lbael and entry for symptop, count
+    # label and entry for symptom, count
     tk.Label(symptom_frame, text="How many symptoms would you like to enter? (1-5)", font=("Arial", 12)).pack(pady=20)
 
     #recreate symptom count entry widget
@@ -428,8 +482,66 @@ tk.Label(condition_search_frame, text="Search for a Medical Condition", font=("A
 condition_entry = tk.Entry(condition_search_frame, width=40)
 condition_entry.pack(pady=10)
 
+################################################################################
+#Pain Assessment Page
+pain_assessment_frame = tk.Frame(root)
+tk.Label(pain_assessment_frame, text="Pain Level Assessment", font=("Arial", 16)).pack(pady=20)
+
+# Pain Level Description Label
+pain_description_label = tk.Label(pain_assessment_frame,
+                                  text="Rate your pain on a scale of 1-10\n"
+                                       "1-3: Mild Discomfort\n"
+                                       "4-7: Significant Pain\n"
+                                       "8-10: Severe Pain",
+                                  justify=tk.LEFT,
+                                  wraplength=400)
+pain_description_label.pack(pady=10)
+
+# Pain Level Entry
+tk.Label(pain_assessment_frame, text="Enter your current pain level (1-10):").pack()
+pain_entry = tk.Entry(pain_assessment_frame, width=10)
+pain_entry.pack(pady=10)
+
+def show_pain_alert():
+    try:
+        pain_level = int(pain_entry.get())
+        message, severity = alert_system(pain_level)
+
+        # Clear previous alert labels
+        for widget in pain_assessment_frame.winfo_children():
+            if isinstance(widget, tk.Label) and widget not in [
+                pain_description_label,
+                pain_assessment_frame.winfo_children()[0]  # Keep the title label
+            ]:
+                widget.destroy()
+
+        # Create a new label for the alert
+        if severity == "low":
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="green",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+        elif severity == "moderate":
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="orange",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+        else:  # severe
+            alert_label = tk.Label(pain_assessment_frame,
+                                   text=message,
+                                   fg="red",
+                                   wraplength=400,
+                                   justify=tk.LEFT)
+
+        alert_label.pack(pady=10)
+
+    except ValueError:
+        messagebox.showerror("Error", "Please enter a valid number between 1 and 10")
+
 #register all the frames (FOR LIGHT MODE AND DARK MODE!!)
-windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame]
+windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame, pain_assessment_frame]
 ##########################################################################################################
 
 #ConditionGraph Class
@@ -611,71 +723,6 @@ def alert_system(pain_level):
             "severe"
         )
 
-# Add this to your navigation functions
-def show_pain_assessment_page():
-    hide_all_frames()
-    pain_assessment_frame.pack(fill="both", expand=True)
-
-
-# Add this after your existing page definitions
-# Pain Assessment Page
-pain_assessment_frame = tk.Frame(root)
-tk.Label(pain_assessment_frame, text="Pain Level Assessment", font=("Arial", 16)).pack(pady=20)
-
-# Pain Level Description Label
-pain_description_label = tk.Label(pain_assessment_frame,
-                                  text="Rate your pain on a scale of 1-10\n"
-                                       "1-3: Mild Discomfort\n"
-                                       "4-7: Significant Pain\n"
-                                       "8-10: Severe Pain",
-                                  justify=tk.LEFT,
-                                  wraplength=400)
-pain_description_label.pack(pady=10)
-
-# Pain Level Entry
-tk.Label(pain_assessment_frame, text="Enter your current pain level (1-10):").pack()
-pain_entry = tk.Entry(pain_assessment_frame, width=10)
-pain_entry.pack(pady=10)
-
-
-def show_pain_alert():
-    try:
-        pain_level = int(pain_entry.get())
-        message, severity = alert_system(pain_level)
-
-        # Clear previous alert labels
-        for widget in pain_assessment_frame.winfo_children():
-            if isinstance(widget, tk.Label) and widget not in [
-                pain_description_label,
-                pain_assessment_frame.winfo_children()[0]  # Keep the title label
-            ]:
-                widget.destroy()
-
-        # Create a new label for the alert
-        if severity == "low":
-            alert_label = tk.Label(pain_assessment_frame,
-                                   text=message,
-                                   fg="green",
-                                   wraplength=400,
-                                   justify=tk.LEFT)
-        elif severity == "moderate":
-            alert_label = tk.Label(pain_assessment_frame,
-                                   text=message,
-                                   fg="orange",
-                                   wraplength=400,
-                                   justify=tk.LEFT)
-        else:  # severe
-            alert_label = tk.Label(pain_assessment_frame,
-                                   text=message,
-                                   fg="red",
-                                   wraplength=400,
-                                   justify=tk.LEFT)
-
-        alert_label.pack(pady=10)
-
-    except ValueError:
-        messagebox.showerror("Error", "Please enter a valid number between 1 and 10")
-
 most_dangerous_symptoms = [
     "Coughing Blood",
     "Chest Pain",
@@ -793,10 +840,6 @@ back_to_homepage_button = tk.Button(pain_assessment_frame,
                                     text="Back to Homepage",
                                     command=show_homepage)
 back_to_homepage_button.pack(pady=10)
-
-# Modify your homepage to include a button for Pain Assessment
-# Find the homepage_frame section and add:
-tk.Button(homepage_frame, text="Pain Level Assessment", command=show_pain_assessment_page, width=30).pack(pady=10)
 
 tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
 tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
