@@ -540,147 +540,6 @@ def show_pain_alert():
     except ValueError:
         messagebox.showerror("Error", "Please enter a valid number between 1 and 10")
 
-#register all the frames (FOR LIGHT MODE AND DARK MODE!!)
-windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame, pain_assessment_frame]
-##########################################################################################################
-
-#ConditionGraph Class
-class ConditionGraph:
-
-    def __init__(self):
-        self.graph = {
-            'conditions': {},
-            'symptoms': {}
-        }
-
-    def load_data(self, file_path):
-        """Load data from a CSV file and categorize conditions and symptoms."""
-        try:
-            df = pd.read_csv(file_path)
-        except FileNotFoundError:
-            print(f"Error: The file '{file_path}' was not found.")
-            return
-        except ValueError:
-            print(f"Error: Cannot read the file, please ensure it's a valid CSV file.")
-            return
-
-        df.columns = df.columns.str.strip()
-        required_columns = ['Condition']
-        symptom_columns = [col for col in df.columns if col.lower().startswith('symptom')]
-
-        if not symptom_columns or 'Condition' not in df.columns:
-            print(f"Error: Missing necessary columns (Symptom columns or Condition) in the CSV file.")
-            return
-
-        for _, row in df.iterrows():
-            condition = row['Condition'].strip().lower()
-
-            if condition not in self.graph['conditions']:
-                self.graph['conditions'][condition] = []
-
-            for col in symptom_columns:
-                symptom = row[col].strip().lower()
-                if pd.notna(symptom):
-                    if symptom not in self.graph['symptoms']:
-                        self.graph['symptoms'][symptom] = []
-
-                    if symptom not in self.graph['conditions'][condition]:
-                        self.graph['conditions'][condition].append(symptom)
-
-                    if condition not in self.graph['symptoms'][symptom]:
-                        self.graph['symptoms'][symptom].append(condition)
-
-    def match_symptoms_to_conditions(self, symptoms):
-        """Match the symptoms entered by the user to corresponding conditions."""
-        matched_conditions = set()
-
-        for symptom in symptoms:
-            symptom_lower = symptom.lower()
-            if symptom_lower in self.graph['symptoms']:
-                matched_conditions.update(self.graph['symptoms'][symptom_lower])
-
-        return matched_conditions
-
-    def suggest_correction(self, user_input, valid_list):
-        """Suggest corrections for user input using difflib."""
-        suggestions = difflib.get_close_matches(user_input.lower(), valid_list, n=1, cutoff=0.8)
-        return suggestions[0] if suggestions else None
-
-
-#Instantiate ConditionGraph and load data
-condition_graph = ConditionGraph()
-condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
-
-def search_condition():
-    # global variables for search condition
-    global suggestion_label, no_match_label, condition_label
-
-    # Clear any previous result labels
-    for widget in condition_search_frame.winfo_children():
-        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
-            widget.destroy()
-
-    search_term = condition_entry.get().strip().lower()
-
-    #reset globals
-    suggestion_label = None
-    no_match_label = None
-    condition_label = None
-
-    # Try to find an exact or suggested match
-    if search_term in condition_graph.graph['conditions']:
-        # Exact match found
-        matched_condition = search_term
-        symptoms = condition_graph.graph['conditions'][matched_condition]
-
-        # Create labels for condition and symptoms
-        condition_label = tk.Label(condition_search_frame,
-                                   text=f"Condition Found: {matched_condition.capitalize()}", fg = "green",
-                                   font=("Arial", 12, "bold"),
-                                   wraplength=400)
-        condition_label.pack(pady=10)
-
-        symptoms_label = tk.Label(condition_search_frame,
-                                  text=f"Symptoms: {', '.join(symptoms)}",
-                                  wraplength=400,
-                                  justify=tk.LEFT)
-        symptoms_label.pack(pady=5)
-
-    else:
-        # Try to find a suggestion
-        suggested_condition = condition_graph.suggest_correction(search_term,
-                                                                 list(condition_graph.graph['conditions'].keys()))
-
-        if suggested_condition:
-            # Suggestion found
-            symptoms = condition_graph.graph['conditions'][suggested_condition]
-
-            # Create labels for suggested condition and symptoms
-            suggestion_label = tk.Label(condition_search_frame,
-                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
-                                        fg="blue",
-                                        font=("Arial", 12, "bold"),
-                                        wraplength=400)
-            suggestion_label.pack(pady=10)
-
-            symptoms_label = tk.Label(condition_search_frame,
-                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
-                                      wraplength=400,
-                                      justify=tk.LEFT)
-            symptoms_label.pack(pady=5)
-
-        else:
-            # No match found
-            no_match_label = tk.Label(condition_search_frame,
-                                      text=f"No condition found for '{search_term}'.",
-                                      fg="red",
-                                      wraplength=400)
-            no_match_label.pack(pady=10)
-
-    # Reapply theme to the symptom_frame and its children
-    apply_theme(condition_search_frame, bg="#26242f" if not switch_value else "white",
-                    fg="white" if not switch_value else "black")
-
 def alert_system(pain_level):
     """
     Generates an alert message based on the user's reported pain level.
@@ -840,6 +699,147 @@ back_to_homepage_button = tk.Button(pain_assessment_frame,
                                     text="Back to Homepage",
                                     command=show_homepage)
 back_to_homepage_button.pack(pady=10)
+
+#register all the frames (FOR LIGHT MODE AND DARK MODE!!)
+windows[root] = [profile_frame, homepage_frame, condition_search_frame, symptom_frame, pain_assessment_frame]
+##########################################################################################################
+
+#ConditionGraph Class
+class ConditionGraph:
+
+    def __init__(self):
+        self.graph = {
+            'conditions': {},
+            'symptoms': {}
+        }
+
+    def load_data(self, file_path):
+        """Load data from a CSV file and categorize conditions and symptoms."""
+        try:
+            df = pd.read_csv(file_path)
+        except FileNotFoundError:
+            print(f"Error: The file '{file_path}' was not found.")
+            return
+        except ValueError:
+            print(f"Error: Cannot read the file, please ensure it's a valid CSV file.")
+            return
+
+        df.columns = df.columns.str.strip()
+        required_columns = ['Condition']
+        symptom_columns = [col for col in df.columns if col.lower().startswith('symptom')]
+
+        if not symptom_columns or 'Condition' not in df.columns:
+            print(f"Error: Missing necessary columns (Symptom columns or Condition) in the CSV file.")
+            return
+
+        for _, row in df.iterrows():
+            condition = row['Condition'].strip().lower()
+
+            if condition not in self.graph['conditions']:
+                self.graph['conditions'][condition] = []
+
+            for col in symptom_columns:
+                symptom = row[col].strip().lower()
+                if pd.notna(symptom):
+                    if symptom not in self.graph['symptoms']:
+                        self.graph['symptoms'][symptom] = []
+
+                    if symptom not in self.graph['conditions'][condition]:
+                        self.graph['conditions'][condition].append(symptom)
+
+                    if condition not in self.graph['symptoms'][symptom]:
+                        self.graph['symptoms'][symptom].append(condition)
+
+    def match_symptoms_to_conditions(self, symptoms):
+        """Match the symptoms entered by the user to corresponding conditions."""
+        matched_conditions = set()
+
+        for symptom in symptoms:
+            symptom_lower = symptom.lower()
+            if symptom_lower in self.graph['symptoms']:
+                matched_conditions.update(self.graph['symptoms'][symptom_lower])
+
+        return matched_conditions
+
+    def suggest_correction(self, user_input, valid_list):
+        """Suggest corrections for user input using difflib."""
+        suggestions = difflib.get_close_matches(user_input.lower(), valid_list, n=1, cutoff=0.8)
+        return suggestions[0] if suggestions else None
+
+
+#Instantiate ConditionGraph and load data
+condition_graph = ConditionGraph()
+condition_graph.load_data('database/FinalProjectDatabase.csv')  # Ensure correct file path
+
+def search_condition():
+    # global variables for search condition
+    global suggestion_label, no_match_label, condition_label
+
+    # Clear any previous result labels
+    for widget in condition_search_frame.winfo_children():
+        if isinstance(widget, tk.Label) and widget.cget("text") not in ["Search for a Medical Condition"]:
+            widget.destroy()
+
+    search_term = condition_entry.get().strip().lower()
+
+    #reset globals
+    suggestion_label = None
+    no_match_label = None
+    condition_label = None
+
+    # Try to find an exact or suggested match
+    if search_term in condition_graph.graph['conditions']:
+        # Exact match found
+        matched_condition = search_term
+        symptoms = condition_graph.graph['conditions'][matched_condition]
+
+        # Create labels for condition and symptoms
+        condition_label = tk.Label(condition_search_frame,
+                                   text=f"Condition Found: {matched_condition.capitalize()}", fg = "green",
+                                   font=("Arial", 12, "bold"),
+                                   wraplength=400)
+        condition_label.pack(pady=10)
+
+        symptoms_label = tk.Label(condition_search_frame,
+                                  text=f"Symptoms: {', '.join(symptoms)}",
+                                  wraplength=400,
+                                  justify=tk.LEFT)
+        symptoms_label.pack(pady=5)
+
+    else:
+        # Try to find a suggestion
+        suggested_condition = condition_graph.suggest_correction(search_term,
+                                                                 list(condition_graph.graph['conditions'].keys()))
+
+        if suggested_condition:
+            # Suggestion found
+            symptoms = condition_graph.graph['conditions'][suggested_condition]
+
+            # Create labels for suggested condition and symptoms
+            suggestion_label = tk.Label(condition_search_frame,
+                                        text=f"Did you mean: {suggested_condition.capitalize()}?",
+                                        fg="blue",
+                                        font=("Arial", 12, "bold"),
+                                        wraplength=400)
+            suggestion_label.pack(pady=10)
+
+            symptoms_label = tk.Label(condition_search_frame,
+                                      text=f"Symptoms for {suggested_condition.capitalize()}:\n{', '.join(symptoms)}",
+                                      wraplength=400,
+                                      justify=tk.LEFT)
+            symptoms_label.pack(pady=5)
+
+        else:
+            # No match found
+            no_match_label = tk.Label(condition_search_frame,
+                                      text=f"No condition found for '{search_term}'.",
+                                      fg="red",
+                                      wraplength=400)
+            no_match_label.pack(pady=10)
+
+    # Reapply theme to the symptom_frame and its children
+    apply_theme(condition_search_frame, bg="#26242f" if not switch_value else "white",
+                    fg="white" if not switch_value else "black")
 
 tk.Button(condition_search_frame, text="Search", command=search_condition).pack(pady=10)
 tk.Button(condition_search_frame, text="Back to Homepage", command=show_homepage).pack()
